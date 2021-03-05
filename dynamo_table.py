@@ -69,7 +69,6 @@ def delete_all_records():
 
     if _table_exists():
         table = dynamodb.Table(_table_name)
-        # scan = table.scan()
         scan = table.scan(
             ProjectionExpression="#k,resource_id",
             ExpressionAttributeNames={"#k": "type"},

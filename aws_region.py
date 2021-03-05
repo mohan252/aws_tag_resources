@@ -1,4 +1,4 @@
-_aws_region = "us-east-1"
+_aws_region = "us-east-2"
 
 
 def get():

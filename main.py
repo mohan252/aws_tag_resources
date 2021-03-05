@@ -5,11 +5,12 @@ import os
 from consolemenu import *
 from consolemenu.format import *
 from consolemenu.items import *
-from common import continue_prompt
 
+from common import continue_prompt
 import aws_region
 import aws_profile
 import dynamo_table
+import tags
 
 
 def set_region():
@@ -83,6 +84,11 @@ def main():
         lambda: dynamo_table.delete_all_records(),
     )
 
+    function_item_8 = FunctionItem(
+        "Load the AWS Resource tags into the table Aws_RscTag_Tbl",
+        lambda: tags.load_resources(),
+    )
+
     menu.append_item(function_item_1)
     menu.append_item(function_item_2)
     menu.append_item(function_item_3)
@@ -90,6 +96,7 @@ def main():
     menu.append_item(function_item_5)
     menu.append_item(function_item_6)
     menu.append_item(function_item_7)
+    menu.append_item(function_item_8)
     menu.show()
 
 
