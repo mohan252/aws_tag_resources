@@ -5,6 +5,17 @@
         "subnet",
         "route-table",
         "snapshot",
-        "instance"
+        "instance",
+        "security-group",
+        "volume",
+        "customer-gateway",
+        "dhcp-options",
+        "internet-gateway",
+        "network-acl",
+        "network-interface",
+        "reserved-instances",
+        "spot-instances-request",
+        "vpn-connection",
+        "vpn-gateway"
     ]
 }
