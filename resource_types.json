@@ -1,5 +1,10 @@
 {
     "resource_types": [
-        "vpc"
+        "vpc",
+        "image",
+        "subnet",
+        "route-table",
+        "snapshot",
+        "instance"
     ]
 }
