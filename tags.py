@@ -54,166 +54,104 @@ def get_instances(client):
     return flatten(instances)
 
 
-def get_vpcs(client):
-    return flatten(transform_data(client.describe_vpcs()["Vpcs"], "VpcId", "vpc"))
-
-
-def get_images(client):
-    return flatten(
+resource_mappings = {
+    "instance": get_instances,
+    "vpc": lambda client: flatten(
+        transform_data(client.describe_vpcs()["Vpcs"], "VpcId", "vpc")
+    ),
+    "image": lambda client: flatten(
         transform_data(
             client.describe_images(Owners=["self"])["Images"], "ImageId", "image"
         )
-    )
-
-
-def get_subnets(client):
-    return flatten(
+    ),
+    "subnet": lambda client: flatten(
         transform_data(client.describe_subnets()["Subnets"], "SubnetId", "subnet")
-    )
-
-
-def get_route_tables(client):
-    return flatten(
+    ),
+    "route-table": lambda client: flatten(
         transform_data(
             client.describe_route_tables()["RouteTables"], "RouteTableId", "route_table"
         )
-    )
-
-
-def get_snapshots(client):
-    return flatten(
+    ),
+    "snapshot": lambda client: flatten(
         transform_data(
             client.describe_snapshots(OwnerIds=["self"])["Snapshots"],
             "SnapshotId",
             "snapshot",
         )
-    )
-
-
-def get_security_groups(client):
-    return flatten(
+    ),
+    "security-group": lambda client: flatten(
         transform_data(
             client.describe_security_groups()["SecurityGroups"],
             "GroupId",
             "security_group",
         )
-    )
-
-
-def get_volumes(client):
-    return flatten(
+    ),
+    "volume": lambda client: flatten(
         transform_data(client.describe_volumes()["Volumes"], "VolumeId", "volume")
-    )
-
-
-def get_customer_gateways(client):
-    return flatten(
+    ),
+    "customer-gateway": lambda client: flatten(
         transform_data(
             client.describe_customer_gateways()["CustomerGateways"],
             "CustomerGatewayId",
             "customer_gateway",
         )
-    )
-
-
-def get_dhcp_options(client):
-    return flatten(
+    ),
+    "dhcp-options": lambda client: flatten(
         transform_data(
             client.describe_dhcp_options()["DhcpOptions"],
             "DhcpOptionsId",
             "dhcp_option",
         )
-    )
-
-
-def get_internet_gateways(client):
-    return flatten(
+    ),
+    "internet-gateway": lambda client: flatten(
         transform_data(
             client.describe_internet_gateways()["InternetGateways"],
             "InternetGatewayId",
             "internet_gateway",
         )
-    )
-
-
-def get_network_acls(client):
-    return flatten(
+    ),
+    "network-acl": lambda client: flatten(
         transform_data(
             client.describe_network_acls()["NetworkAcls"],
             "NetworkAclId",
             "network_acl",
         )
-    )
-
-
-def get_network_interfaces(client):
-    return flatten(
+    ),
+    "network-interface": lambda client: flatten(
         transform_data(
             client.describe_network_interfaces()["NetworkInterfaces"],
             "NetworkInterfaceId",
             "network_interface",
         )
-    )
-
-
-def get_reserved_instances(client):
-    return flatten(
+    ),
+    "reserved-instances": lambda client: flatten(
         transform_data(
             client.describe_reserved_instances()["ReservedInstances"],
             "ReservedInstancesId",
             "reserved_instance",
         )
-    )
-
-
-def get_spot_instances_requests(client):
-    return flatten(
+    ),
+    "spot-instances-request": lambda client: flatten(
         transform_data(
             client.describe_spot_instance_requests()["SpotInstanceRequests"],
             "SpotInstanceRequestId",
             "spot_instances_requests",
         )
-    )
-
-
-def get_vpn_connections(client):
-    return flatten(
+    ),
+    "vpn-connection": lambda client: flatten(
         transform_data(
             client.describe_vpn_connections()["VpnConnections"],
             "VpnConnectionId",
             "vpn_connection",
         )
-    )
-
-
-def get_vpn_gateways(client):
-    return flatten(
+    ),
+    "vpn-gateway": lambda client: flatten(
         transform_data(
             client.describe_vpn_gateways()["VpnGateways"],
             "VpnGatewayId",
             "vpn_gateway",
         )
-    )
-
-
-resource_mappings = {
-    "vpc": get_vpcs,
-    "image": get_images,
-    "subnet": get_subnets,
-    "route-table": get_route_tables,
-    "snapshot": get_snapshots,
-    "instance": get_instances,
-    "security-group": get_security_groups,
-    "volume": get_volumes,
-    "customer-gateway": get_customer_gateways,
-    "dhcp-options": get_dhcp_options,
-    "internet-gateway": get_internet_gateways,
-    "network-acl": get_network_acls,
-    "network-interface": get_network_interfaces,
-    "reserved-instances": get_reserved_instances,
-    "spot-instances-request": get_spot_instances_requests,
-    "vpn-connection": get_vpn_connections,
-    "vpn-gateway": get_vpn_gateways,
+    ),
 }
 
 

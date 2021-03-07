@@ -98,6 +98,10 @@ def insert_records(data):
                 batch.put_item(Item=data[i])
 
 
+def export_csv(csv_file_path):
+    pass
+
+
 def _table_exists():
     global dynamodb
     global _table_name
