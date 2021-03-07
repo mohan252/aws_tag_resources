@@ -86,16 +86,16 @@ def delete_all_records():
 
 
 def insert_records(data):
-    with table.batch_writer() as batch:
-        for i in range(len(data)):
-            batch.put_item(
-                Item={
-                    "account_type": "anonymous",
-                    "username": "user" + str(i),
-                    "first_name": "unknown",
-                    "last_name": "unknown",
-                }
-            )
+    global dynamodb
+    global _table_name
+
+    if _table_exists():
+        table = dynamodb.Table(_table_name)
+        with table.batch_writer(
+            overwrite_by_pkeys=["resource_id", "tag_name"]
+        ) as batch:
+            for i in range(len(data)):
+                batch.put_item(Item=data[i])
 
 
 def _table_exists():

@@ -3,6 +3,7 @@ import boto3
 
 from common import continue_prompt
 import aws_region
+from dynamo_table import insert_records
 
 _resource_types = {}
 
@@ -16,54 +17,14 @@ def flatten(regular_list):
         else:
             result.append(item1)
     return result
-    # return [item for sublist in regular_list for item in sublist]
 
 
-def get_instances1(client):
-    instances = []
-    for reservation in client.describe_instances()["Reservations"]:
-        instances.extend(
-            list(
-                map(
-                    lambda x: {
-                        "resource-id": x["InstanceId"],
-                        "type": "instance",
-                        "tag_name": "null",
-                        "tag_value": "null",
-                    }
-                    if x.get("Tags", None) == None
-                    else list(
-                        map(
-                            lambda y: {
-                                "resource-id": x["InstanceId"],
-                                "type": "instance",
-                                "tag_name": y["Key"],
-                                "tag_value": y["Value"],
-                            },
-                            x["Tags"],
-                        )
-                    ),
-                    reservation["Instances"],
-                )
-            )
-        )
-    # instances = [item for sublist in instances for item in sublist]
-    return flatten(instances)
-
-
-def get_instances(client):
-    instances = []
-    for reservation in client.describe_instances()["Reservations"]:
-        instances.extend(transform_data(reservation["Instances"], "InstanceId"))
-    return flatten(instances)
-
-
-def transform_data(data, id_field):
+def transform_data(data, id_field, type):
     return list(
         map(
             lambda x: {
-                "resource-id": x[id_field],
-                "type": "vpc",
+                "resource_id": x[id_field],
+                "type": type,
                 "tag_name": "null",
                 "tag_value": "null",
             }
@@ -71,8 +32,8 @@ def transform_data(data, id_field):
             else list(
                 map(
                     lambda y: {
-                        "resource-id": x[id_field],
-                        "type": "vpc",
+                        "resource_id": x[id_field],
+                        "type": type,
                         "tag_name": y["Key"],
                         "tag_value": y["Value"],
                     },
@@ -84,229 +45,153 @@ def transform_data(data, id_field):
     )
 
 
-def get_vpcs(client):
-    return flatten(transform_data(client.describe_vpcs()["Vpcs"], "VpcId"))
-
-
-def get_vpcs1(client):
-    return flatten(
-        list(
-            map(
-                lambda x: {
-                    "resource-id": x["VpcId"],
-                    "type": "vpc",
-                    "tag_name": "null",
-                    "tag_value": "null",
-                }
-                if x.get("Tags", None) == None
-                else list(
-                    map(
-                        lambda y: {
-                            "resource-id": x["VpcId"],
-                            "type": "vpc",
-                            "tag_name": y["Key"],
-                            "tag_value": y["Value"],
-                        },
-                        x["Tags"],
-                    )
-                ),
-                client.describe_vpcs()["Vpcs"],
-            )
+def get_instances(client):
+    instances = []
+    for reservation in client.describe_instances()["Reservations"]:
+        instances.extend(
+            transform_data(reservation["Instances"], "InstanceId", "instance")
         )
-    )
+    return flatten(instances)
+
+
+def get_vpcs(client):
+    return flatten(transform_data(client.describe_vpcs()["Vpcs"], "VpcId", "vpc"))
 
 
 def get_images(client):
-    return list(
-        map(
-            lambda x: {
-                "resource-id": x["ImageId"],
-                "type": "image",
-                "tags": x.get("Tags", None),
-            },
-            client.describe_images(Owners=["self"])["Images"],
+    return flatten(
+        transform_data(
+            client.describe_images(Owners=["self"])["Images"], "ImageId", "image"
         )
     )
 
 
 def get_subnets(client):
-    return list(
-        map(
-            lambda x: {
-                "resource-id": x["SubnetId"],
-                "type": "subnet",
-                "tags": x.get("Tags", None),
-            },
-            client.describe_subnets()["Subnets"],
-        )
+    return flatten(
+        transform_data(client.describe_subnets()["Subnets"], "SubnetId", "subnet")
     )
 
 
 def get_route_tables(client):
-    return list(
-        map(
-            lambda x: {
-                "resource-id": x["RouteTableId"],
-                "type": "route_table",
-                "tags": x.get("Tags", None),
-            },
-            client.describe_route_tables()["RouteTables"],
+    return flatten(
+        transform_data(
+            client.describe_route_tables()["RouteTables"], "RouteTableId", "route_table"
         )
     )
 
 
 def get_snapshots(client):
-    return list(
-        map(
-            lambda x: {
-                "resource-id": x["SnapshotId"],
-                "type": "route_table",
-                "tags": x.get("Tags", None),
-            },
+    return flatten(
+        transform_data(
             client.describe_snapshots(OwnerIds=["self"])["Snapshots"],
+            "SnapshotId",
+            "snapshot",
         )
     )
 
 
 def get_security_groups(client):
-    return list(
-        map(
-            lambda x: {
-                "resource-id": x["GroupId"],
-                "type": "security_group",
-                "tags": x.get("Tags", None),
-            },
+    return flatten(
+        transform_data(
             client.describe_security_groups()["SecurityGroups"],
+            "GroupId",
+            "security_group",
         )
     )
 
 
 def get_volumes(client):
-    return list(
-        map(
-            lambda x: {
-                "resource-id": x["VolumeId"],
-                "type": "volume",
-                "tags": x.get("Tags", None),
-            },
-            client.describe_volumes()["Volumes"],
-        )
+    return flatten(
+        transform_data(client.describe_volumes()["Volumes"], "VolumeId", "volume")
     )
 
 
 def get_customer_gateways(client):
-    return list(
-        map(
-            lambda x: {
-                "resource-id": x["CustomerGatewayId"],
-                "type": "customer_gateway",
-                "tags": x.get("Tags", None),
-            },
+    return flatten(
+        transform_data(
             client.describe_customer_gateways()["CustomerGateways"],
+            "CustomerGatewayId",
+            "customer_gateway",
         )
     )
 
 
 def get_dhcp_options(client):
-    return list(
-        map(
-            lambda x: {
-                "resource-id": x["DhcpOptionsId"],
-                "type": "dhcp_option",
-                "tags": x.get("Tags", None),
-            },
+    return flatten(
+        transform_data(
             client.describe_dhcp_options()["DhcpOptions"],
+            "DhcpOptionsId",
+            "dhcp_option",
         )
     )
 
 
 def get_internet_gateways(client):
-    return list(
-        map(
-            lambda x: {
-                "resource-id": x["InternetGatewayId"],
-                "type": "internet_gateway",
-                "tags": x.get("Tags", None),
-            },
+    return flatten(
+        transform_data(
             client.describe_internet_gateways()["InternetGateways"],
+            "InternetGatewayId",
+            "internet_gateway",
         )
     )
 
 
 def get_network_acls(client):
-    return list(
-        map(
-            lambda x: {
-                "resource-id": x["NetworkAclId"],
-                "type": "network_acl",
-                "tags": x.get("Tags", None),
-            },
+    return flatten(
+        transform_data(
             client.describe_network_acls()["NetworkAcls"],
+            "NetworkAclId",
+            "network_acl",
         )
     )
 
 
 def get_network_interfaces(client):
-    return list(
-        map(
-            lambda x: {
-                "resource-id": x["NetworkInterfaceId"],
-                "type": "network_interface",
-                "tags": x.get("Tags", None),
-            },
+    return flatten(
+        transform_data(
             client.describe_network_interfaces()["NetworkInterfaces"],
+            "NetworkInterfaceId",
+            "network_interface",
         )
     )
 
 
 def get_reserved_instances(client):
-    return list(
-        map(
-            lambda x: {
-                "resource-id": x["ReservedInstancesId"],
-                "type": "reserved_instance",
-                "tags": x.get("Tags", None),
-            },
+    return flatten(
+        transform_data(
             client.describe_reserved_instances()["ReservedInstances"],
+            "ReservedInstancesId",
+            "reserved_instance",
         )
     )
 
 
 def get_spot_instances_requests(client):
-    return list(
-        map(
-            lambda x: {
-                "resource-id": x["SpotInstanceRequestId"],
-                "type": "spot_instances_requests",
-                "tags": x.get("Tags", None),
-            },
+    return flatten(
+        transform_data(
             client.describe_spot_instance_requests()["SpotInstanceRequests"],
+            "SpotInstanceRequestId",
+            "spot_instances_requests",
         )
     )
 
 
 def get_vpn_connections(client):
-    return list(
-        map(
-            lambda x: {
-                "resource-id": x["VpnConnectionId"],
-                "type": "vpn_connection",
-                "tags": x.get("Tags", None),
-            },
+    return flatten(
+        transform_data(
             client.describe_vpn_connections()["VpnConnections"],
+            "VpnConnectionId",
+            "vpn_connection",
         )
     )
 
 
 def get_vpn_gateways(client):
-    return list(
-        map(
-            lambda x: {
-                "resource-id": x["VpnGatewayId"],
-                "type": "vpn_gateway",
-                "tags": x.get("Tags", None),
-            },
+    return flatten(
+        transform_data(
             client.describe_vpn_gateways()["VpnGateways"],
+            "VpnGatewayId",
+            "vpn_gateway",
         )
     )
 
@@ -342,39 +227,9 @@ def load_resources():
 
     resources = []
     for resource_type in resource_types:
-        temp = resource_mappings[resource_type](ec2_client)
-        resources.extend(temp)
-        # temp_resource = resource_mappings[resource_type](ec2_client)
-        # if temp_resource["tags"] == None:
-        #     resources.append(
-        #         {
-        #             "resource_id": temp_resource["resource_id"],
-        #             "tag_name": "none",
-        #             "tag_value": "none",
-        #             "type": temp_resource["type"],
-        #         }
-        #     )
-        # else:
-        #     mapped_resource = list(
-        #         map(
-        #             lambda x: {
-        #                 "resource_id": temp_resource["resource_id"],
-        #                 "tag_name": x["Name"],
-        #                 "tag_value": x["Value"],
-        #                 "type": temp_resource["type"],
-        #             },
-        #             temp_resource.tags,
-        #         )
-        #     )
-        #     resources.extend(mapped_resource)
-
-    # resources = [item for sublist in resources for item in sublist]
-
-    # resource_data = []
-    # for resource in resources:
-    #     map(lambda x: {'resource_id': resource[''], 'tag_name': x['Name']}
+        resources.extend(resource_mappings[resource_type](ec2_client))
 
     for resource in resources:
         print(resource)
-        # print(json.dumps(resource))
+    insert_records(resources)
     continue_prompt()
