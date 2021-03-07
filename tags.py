@@ -7,34 +7,111 @@ import aws_region
 _resource_types = {}
 
 
-def get_instances(client):
+def flatten(regular_list):
+    result = []
+    for item1 in regular_list:
+        if isinstance(item1, list):
+            for item2 in item1:
+                result.append(item2)
+        else:
+            result.append(item1)
+    return result
+    # return [item for sublist in regular_list for item in sublist]
+
+
+def get_instances1(client):
     instances = []
     for reservation in client.describe_instances()["Reservations"]:
-        instances.append(
+        instances.extend(
             list(
                 map(
                     lambda x: {
                         "resource-id": x["InstanceId"],
                         "type": "instance",
-                        "tags": x.get("Tags", None),
-                    },
+                        "tag_name": "null",
+                        "tag_value": "null",
+                    }
+                    if x.get("Tags", None) == None
+                    else list(
+                        map(
+                            lambda y: {
+                                "resource-id": x["InstanceId"],
+                                "type": "instance",
+                                "tag_name": y["Key"],
+                                "tag_value": y["Value"],
+                            },
+                            x["Tags"],
+                        )
+                    ),
                     reservation["Instances"],
                 )
             )
         )
-    instances = [item for sublist in instances for item in sublist]
-    return instances
+    # instances = [item for sublist in instances for item in sublist]
+    return flatten(instances)
 
 
-def get_vpcs(client):
+def get_instances(client):
+    instances = []
+    for reservation in client.describe_instances()["Reservations"]:
+        instances.extend(transform_data(reservation["Instances"], "InstanceId"))
+    return flatten(instances)
+
+
+def transform_data(data, id_field):
     return list(
         map(
             lambda x: {
-                "resource-id": x["VpcId"],
+                "resource-id": x[id_field],
                 "type": "vpc",
-                "tags": x.get("Tags", None),
-            },
-            client.describe_vpcs()["Vpcs"],
+                "tag_name": "null",
+                "tag_value": "null",
+            }
+            if x.get("Tags", None) == None
+            else list(
+                map(
+                    lambda y: {
+                        "resource-id": x[id_field],
+                        "type": "vpc",
+                        "tag_name": y["Key"],
+                        "tag_value": y["Value"],
+                    },
+                    x["Tags"],
+                )
+            ),
+            data,
+        )
+    )
+
+
+def get_vpcs(client):
+    return flatten(transform_data(client.describe_vpcs()["Vpcs"], "VpcId"))
+
+
+def get_vpcs1(client):
+    return flatten(
+        list(
+            map(
+                lambda x: {
+                    "resource-id": x["VpcId"],
+                    "type": "vpc",
+                    "tag_name": "null",
+                    "tag_value": "null",
+                }
+                if x.get("Tags", None) == None
+                else list(
+                    map(
+                        lambda y: {
+                            "resource-id": x["VpcId"],
+                            "type": "vpc",
+                            "tag_name": y["Key"],
+                            "tag_value": y["Value"],
+                        },
+                        x["Tags"],
+                    )
+                ),
+                client.describe_vpcs()["Vpcs"],
+            )
         )
     )
 
@@ -265,9 +342,39 @@ def load_resources():
 
     resources = []
     for resource_type in resource_types:
-        resources.append(resource_mappings[resource_type](ec2_client))
+        temp = resource_mappings[resource_type](ec2_client)
+        resources.extend(temp)
+        # temp_resource = resource_mappings[resource_type](ec2_client)
+        # if temp_resource["tags"] == None:
+        #     resources.append(
+        #         {
+        #             "resource_id": temp_resource["resource_id"],
+        #             "tag_name": "none",
+        #             "tag_value": "none",
+        #             "type": temp_resource["type"],
+        #         }
+        #     )
+        # else:
+        #     mapped_resource = list(
+        #         map(
+        #             lambda x: {
+        #                 "resource_id": temp_resource["resource_id"],
+        #                 "tag_name": x["Name"],
+        #                 "tag_value": x["Value"],
+        #                 "type": temp_resource["type"],
+        #             },
+        #             temp_resource.tags,
+        #         )
+        #     )
+        #     resources.extend(mapped_resource)
 
-    resources = [item for sublist in resources for item in sublist]
+    # resources = [item for sublist in resources for item in sublist]
+
+    # resource_data = []
+    # for resource in resources:
+    #     map(lambda x: {'resource_id': resource[''], 'tag_name': x['Name']}
+
     for resource in resources:
-        print(json.dumps(resource))
+        print(resource)
+        # print(json.dumps(resource))
     continue_prompt()

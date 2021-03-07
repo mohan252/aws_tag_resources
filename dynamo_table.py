@@ -27,11 +27,11 @@ def create():
         TableName=_table_name,
         KeySchema=[
             {"AttributeName": "resource_id", "KeyType": "HASH"},
-            {"AttributeName": "type", "KeyType": "RANGE"},
+            {"AttributeName": "tag_name", "KeyType": "RANGE"},
         ],
         AttributeDefinitions=[
             {"AttributeName": "resource_id", "AttributeType": "S"},
-            {"AttributeName": "type", "AttributeType": "S"},
+            {"AttributeName": "tag_name", "AttributeType": "S"},
         ],
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
     )
@@ -83,6 +83,19 @@ def delete_all_records():
     else:
         print(f"Table {_table_name} not exists")
         continue_prompt()
+
+
+def insert_records(data):
+    with table.batch_writer() as batch:
+        for i in range(len(data)):
+            batch.put_item(
+                Item={
+                    "account_type": "anonymous",
+                    "username": "user" + str(i),
+                    "first_name": "unknown",
+                    "last_name": "unknown",
+                }
+            )
 
 
 def _table_exists():
