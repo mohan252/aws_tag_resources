@@ -4,6 +4,7 @@ import aws_profile
 import threading
 import sys
 import time
+import csv
 from common import continue_prompt
 
 sys.stdout.flush()
@@ -13,14 +14,16 @@ _table_name = "Aws_RscTag_Tbl"
 boto3.setup_default_session(profile_name=aws_profile.get())
 dynamodb = boto3.resource("dynamodb", region_name=aws_region.get())
 
-_continue_printing = False
-
 
 def create():
     global _table_name
     global dynamodb
     global _continue_printing
 
+    if _table_exists():
+        print("Table already exists. Delete the table and try again")
+        continue_prompt()
+        return
     print(f"Creating {_table_name} table")
     # Create the DynamoDB table.
     table = dynamodb.create_table(
@@ -36,14 +39,12 @@ def create():
         ProvisionedThroughput={"ReadCapacityUnits": 1, "WriteCapacityUnits": 1},
     )
 
-    _continue_printing = True
-    print_status_thread = threading.Thread(target=_print_status)
-    print_status_thread.start()
+    start_print_progress()
 
     # Wait until the table exists.
     table.meta.client.get_waiter("table_exists").wait(TableName=_table_name)
+    stop_print_progress()
 
-    _continue_printing = False
     # Print out some data about the table.
     print("\nFinished creating table.")
     continue_prompt()
@@ -63,7 +64,7 @@ def delete():
         continue_prompt()
 
 
-def delete_all_records():
+def delete_all_records(prompt=True):
     global dynamodb
     global _table_name
 
@@ -71,18 +72,23 @@ def delete_all_records():
         table = dynamodb.Table(_table_name)
         scan = table.scan(
             ProjectionExpression="#k,resource_id",
-            ExpressionAttributeNames={"#k": "type"},
+            ExpressionAttributeNames={"#k": "tag_name"},
         )
         with table.batch_writer() as batch:
             for each in scan["Items"]:
                 batch.delete_item(
-                    Key={"resource_id": each["resource_id"], "type": each["type"]}
+                    Key={
+                        "resource_id": each["resource_id"],
+                        "tag_name": each["tag_name"],
+                    }
                 )
         print(f"Deleted all records from {_table_name} Table")
-        continue_prompt()
+        if prompt == True:
+            continue_prompt()
     else:
         print(f"Table {_table_name} not exists")
-        continue_prompt()
+        if continue_prompt == True:
+            continue_prompt()
 
 
 def insert_records(data):
@@ -99,7 +105,60 @@ def insert_records(data):
 
 
 def export_csv(csv_file_path):
-    pass
+    global dynamodb
+    global _table_name
+
+    if _table_exists():
+        table = dynamodb.Table(_table_name)
+        response = table.scan()
+        data = response["Items"]
+
+        while "LastEvaluatedKey" in response:
+            response = table.scan(ExclusiveStartKey=response["LastEvaluatedKey"])
+            data.extend(response["Items"])
+        keys = data[0].keys()
+        with open(csv_file_path, "w", newline="") as output_file:
+            dict_writer = csv.DictWriter(
+                output_file,
+                ["resource_id", "type", "tag_name", "tag_value", "delete(y/n)"],
+            )
+            dict_writer.writeheader()
+            dict_writer.writerows(data)
+
+
+def import_data_from_csv(csv_file_path, replace=True):
+    global dynamodb
+    global _table_name
+
+    if _table_exists():
+        table = dynamodb.Table(_table_name)
+        if replace == True:
+            delete_all_records(prompt=False)
+        print("Importing data")
+        start_print_progress()
+        with open(csv_file_path) as csv_file:
+            csv_reader = csv.DictReader(csv_file, delimiter=",")
+            for row in csv_reader:
+                table.put_item(Item=row)
+        stop_print_progress()
+        print("Import completed.")
+        continue_prompt()
+
+
+# def import_append_csv_data(csv_file_path):
+#     global dynamodb
+#     global _table_name
+
+#     if _table_exists():
+#         table = dynamodb.Table(_table_name)
+#         start_print_progress()
+#         with open(csv_file_path) as csv_file:
+#             csv_reader = csv.DictReader(csv_file, delimiter=",")
+#             for row in csv_reader:
+#                 table.put_item(Item=row)
+#         stop_print_progress()
+#         print("Import completed.")
+#         continue_prompt()
 
 
 def _table_exists():
@@ -114,9 +173,38 @@ def _table_exists():
         return False
 
 
+_continue_printing = False
+
+
 def _print_status():
     global _continue_printing
     while _continue_printing:
         sys.stdout.write(".")
         time.sleep(1)
         sys.stdout.flush()
+
+
+def create_global_function():
+    global _print_status
+
+    def _print_status():
+        global _continue_printing
+        while _continue_printing:
+            sys.stdout.write(".")
+            time.sleep(1)
+            sys.stdout.flush()
+        print("\n")
+
+
+create_global_function()
+
+
+def start_print_progress():
+    global _continue_printing
+    _continue_printing = True
+    threading.Thread(target=_print_status).start()
+
+
+def stop_print_progress():
+    global _continue_printing
+    _continue_printing = False

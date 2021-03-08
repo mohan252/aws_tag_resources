@@ -52,7 +52,9 @@ def main():
     )
 
     menu = ConsoleMenu(
-        "AWS Tagging", "Utlity to help tag AWS resource", formatter=menu_format
+        "AWS Tagging",
+        "Utlity to help tag AWS resource",
+        formatter=menu_format,
     )
 
     function_item_1 = FunctionItem("Set the target AWS Region", set_region)
@@ -89,6 +91,21 @@ def main():
         lambda: tags.load_resources(),
     )
 
+    function_item_9 = FunctionItem(
+        "Export the data  Aws_RscTag_Tbl to a CSV file Aws_ResourceTag.csv",
+        lambda: dynamo_table.export_csv("Aws_ResourceTag.csv"),
+    )
+
+    function_item_10 = FunctionItem(
+        "Import and Replace the data from a csv file [Aws_ResourceTag.csv]",
+        lambda: dynamo_table.import_data_from_csv("Aws_ResourceTag.csv", replace=True),
+    )
+
+    function_item_11 = FunctionItem(
+        "Import and Append  the data from a csv file [Aws_ResourceTag.csv]",
+        lambda: dynamo_table.import_data_from_csv("Aws_ResourceTag.csv", replace=False),
+    )
+
     menu.append_item(function_item_1)
     menu.append_item(function_item_2)
     menu.append_item(function_item_3)
@@ -97,6 +114,9 @@ def main():
     menu.append_item(function_item_6)
     menu.append_item(function_item_7)
     menu.append_item(function_item_8)
+    menu.append_item(function_item_9)
+    menu.append_item(function_item_10)
+    menu.append_item(function_item_11)
     menu.show()
 
 

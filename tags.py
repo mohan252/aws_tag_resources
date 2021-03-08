@@ -27,6 +27,7 @@ def transform_data(data, id_field, type):
                 "type": type,
                 "tag_name": "null",
                 "tag_value": "null",
+                "delete(y/n)": "",
             }
             if x.get("Tags", None) == None
             else list(
@@ -36,6 +37,7 @@ def transform_data(data, id_field, type):
                         "type": type,
                         "tag_name": y["Key"],
                         "tag_value": y["Value"],
+                        "delete(y/n)": "",
                     },
                     x["Tags"],
                 )
@@ -165,7 +167,8 @@ def load_resources():
 
     resources = []
     for resource_type in resource_types:
-        resources.extend(resource_mappings[resource_type](ec2_client))
+        tag = resource_mappings[resource_type](ec2_client)
+        resources.extend(tag)
 
     for resource in resources:
         print(resource)
