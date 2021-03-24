@@ -1,3 +1,4 @@
 {
-    "python.pythonPath": "/Users/mohthiru/.virtualenvs/aws-tag/bin/python"
+    "python.pythonPath": "/Users/mohthiru/.virtualenvs/aws-tag/bin/python",
+    "python.formatting.provider": "black"
 }

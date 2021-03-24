@@ -106,6 +106,11 @@ def main():
         lambda: dynamo_table.import_data_from_csv("Aws_ResourceTag.csv", replace=False),
     )
 
+    function_item_12 = FunctionItem(
+        "Apply the AWS DynamoDB Table to the AWS Resources",
+        lambda: tags.apply(),
+    )
+
     menu.append_item(function_item_1)
     menu.append_item(function_item_2)
     menu.append_item(function_item_3)
@@ -117,6 +122,7 @@ def main():
     menu.append_item(function_item_9)
     menu.append_item(function_item_10)
     menu.append_item(function_item_11)
+    menu.append_item(function_item_12)
     menu.show()
 
 

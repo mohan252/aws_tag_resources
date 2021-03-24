@@ -125,6 +125,9 @@ def export_csv(csv_file_path):
             dict_writer.writeheader()
             dict_writer.writerows(data)
 
+        print("Export completed.")
+        continue_prompt()
+
 
 def import_data_from_csv(csv_file_path, replace=True):
     global dynamodb
@@ -145,20 +148,20 @@ def import_data_from_csv(csv_file_path, replace=True):
         continue_prompt()
 
 
-# def import_append_csv_data(csv_file_path):
-#     global dynamodb
-#     global _table_name
+def get_all_items():
+    global dynamodb
+    global _table_name
 
-#     if _table_exists():
-#         table = dynamodb.Table(_table_name)
-#         start_print_progress()
-#         with open(csv_file_path) as csv_file:
-#             csv_reader = csv.DictReader(csv_file, delimiter=",")
-#             for row in csv_reader:
-#                 table.put_item(Item=row)
-#         stop_print_progress()
-#         print("Import completed.")
-#         continue_prompt()
+    data = []
+    if _table_exists():
+        table = dynamodb.Table(_table_name)
+        response = table.scan()
+        data = response["Items"]
+
+        while "LastEvaluatedKey" in response:
+            response = table.scan(ExclusiveStartKey=response["LastEvaluatedKey"])
+            data.extend(response["Items"])
+    return data
 
 
 def _table_exists():
@@ -169,7 +172,6 @@ def _table_exists():
         response = dynamodb.meta.client.describe_table(TableName=_table_name)
         return True
     except dynamodb.meta.client.exceptions.ResourceNotFoundException:
-        # do something here as you require
         return False
 
 

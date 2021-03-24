@@ -1,9 +1,10 @@
 import json
 import boto3
+from pprint import pprint
 
 from common import continue_prompt
 import aws_region
-from dynamo_table import insert_records
+import dynamo_table
 
 _resource_types = {}
 
@@ -157,6 +158,32 @@ resource_mappings = {
 }
 
 
+def apply():
+    ec2Client = boto3.client("ec2", region_name=aws_region.get())
+    data = dynamo_table.get_all_items()
+    for item in data:
+        delete = item["delete(y/n)"]
+        if delete == "y":
+            print(
+                f'Deleting tag for resource -> {item["resource_id"]}, type -> {item["type"]}, tag -> {item["tag_name"]}, value -> {item["tag_value"]}'
+            )
+            ec2Response = ec2Client.delete_tags(
+                DryRun=False,
+                Resources=[item["resource_id"]],
+                Tags=[{"Key": item["tag_name"], "Value": item["tag_value"]}],
+            )
+        else:
+            print(
+                f'Applying tag for resource -> {item["resource_id"]}, type -> {item["type"]}, tag -> {item["tag_name"]}, value -> {item["tag_value"]}'
+            )
+            ec2Response = ec2Client.create_tags(
+                DryRun=False,
+                Resources=[item["resource_id"]],
+                Tags=[{"Key": item["tag_name"], "Value": item["tag_value"]}],
+            )
+    continue_prompt()
+
+
 def load_resources():
     global _resource_types
     global ec2
@@ -172,5 +199,5 @@ def load_resources():
 
     for resource in resources:
         print(resource)
-    insert_records(resources)
+    dynamo_table.insert_records(resources)
     continue_prompt()
