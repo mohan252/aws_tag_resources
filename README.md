@@ -31,8 +31,9 @@ AWS has proposed a 15 engagement to assist the customer with a comprehensive  ta
 ·      Best practices for AWS Resource  tagging  
 ·      An automated resource  tagging  utility (script) shall be design and developed to assist with AWS Resource  tagging process
 
-5.    Solution Overview 
-To-be-completed by the reader
+5.    Solution Overview   
+Inventory of all the resources in an AWS account is captured in dynamodb table. Then user can export the data, update resource tags and apply the changes.  
+The code is written in Python using AWS boto3 library  
  
 
 6.    Outcomes   
