@@ -1,0 +1,10 @@
+_aws_region = "us-east-2"
+
+
+def get():
+    return _aws_region
+
+
+def set(region_name):
+    global _aws_region
+    _aws_region = region_name
